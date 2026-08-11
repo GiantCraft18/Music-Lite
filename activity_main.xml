@@ -15,17 +15,38 @@
         android:textColor="#FFFFFF"
         android:layout_marginBottom="12dp" />
 
-    <EditText
-        android:id="@+id/etSearch"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="🔍 Поиск песен..."
-        android:textColor="#FFFFFF"
-        android:textColorHint="#888888"
-        android:background="#1E1E1E"
-        android:padding="12dp"
-        android:radius="8dp"
-        android:layout_marginBottom="12dp" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="12dp">
+
+        <EditText
+            android:id="@+id/etSearch"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="🔍 Поиск песен..."
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888"
+            android:background="#1E1E1E"
+            android:padding="12dp"
+            android:radius="8dp"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/btnShowFavorites"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="♥️"
+            android:textSize="24sp"
+            android:textColor="#FFFFFF"
+            android:padding="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground" />
+    </LinearLayout>
 
     <ListView
         android:id="@+id/lvSongs"
