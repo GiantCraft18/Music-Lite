@@ -186,11 +186,14 @@ public class MainActivity extends Activity {
             public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
+        // КОРОТКОЕ НАЖАТИЕ -> Запуск трека (это было сломано)
         lvSongs.setOnItemClickListener((parent, view, position, id) -> {
             int originalIndex = songList.indexOf(filteredList.get(position));
-            openNowPlaying(originalIndex);
+            Toast.makeText(MainActivity.this, "▶️ Воспроизведение: " + songList.get(originalIndex).title, Toast.LENGTH_SHORT).show();
+            playSong(originalIndex);
         });
 
+        // ДОЛГОЕ НАЖАТИЕ -> Избранное
         lvSongs.setOnItemLongClickListener((parent, view, position, id) -> {
             Song song = filteredList.get(position);
             if (favoriteList.contains(song)) {
@@ -316,7 +319,6 @@ public class MainActivity extends Activity {
             intent.putExtra("position", mediaPlayer.getCurrentPosition());
             intent.putExtra("duration", mediaPlayer.getDuration());
         } else {
-            // Если плеер по какой-то причине пропал, создаём его заново прямо перед переходом
             Toast.makeText(this, "⚠️ Плеер был потерян, восстанавливаем...", Toast.LENGTH_SHORT).show();
             playSong(index);
             if (mediaPlayer != null) {
