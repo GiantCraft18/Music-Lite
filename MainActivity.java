@@ -33,7 +33,7 @@ public class MainActivity extends Activity {
 
     private ListView lvSongs;
     private EditText etSearch;
-    private TextView btnShowFavorites;
+    private TextView btnHamburger, btnShowFavorites;
     private Button btnPlay, btnStop, btnRewind, btnForward, btnMute;
     private TextView tvNowPlaying, tvArtistPlaying;
     private SeekBar seekBar;
@@ -103,6 +103,7 @@ public class MainActivity extends Activity {
 
         lvSongs = (ListView) $("lvSongs");
         etSearch = (EditText) $("etSearch");
+        btnHamburger = (TextView) $("btnHamburger");
         btnShowFavorites = (TextView) $("btnShowFavorites");
         btnPlay = (Button) $("btnPlay");
         btnStop = (Button) $("btnStop");
@@ -118,7 +119,6 @@ public class MainActivity extends Activity {
         IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
         registerReceiver(headsetReceiver, filter);
 
-        // Загружаем избранное из памяти
         String favs = prefs.getString("favorites", "");
         if (!favs.isEmpty()) {
             for (String path : favs.split(";")) {
@@ -146,7 +146,11 @@ public class MainActivity extends Activity {
             }
         }
 
-        // Переключение на избранное/все песни
+        // ГАМБУРГЕР -> ПЕРЕХОД В НАСТРОЙКИ
+        btnHamburger.setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, SettingsActivity.class));
+        });
+
         btnShowFavorites.setOnClickListener(v -> {
             isShowingFavorites = !isShowingFavorites;
             if (isShowingFavorites) {
@@ -188,7 +192,6 @@ public class MainActivity extends Activity {
             openNowPlaying(originalIndex);
         });
 
-        // ДОЛГОЕ НАЖАТИЕ: ДОБАВИТЬ/УБРАТЬ ИЗ ИЗБРАННОГО
         lvSongs.setOnItemLongClickListener((parent, view, position, id) -> {
             Song song = filteredList.get(position);
             if (favoriteList.contains(song)) {
@@ -199,8 +202,6 @@ public class MainActivity extends Activity {
                 Toast.makeText(MainActivity.this, "♥️ Добавлено в избранное", Toast.LENGTH_SHORT).show();
             }
             saveFavorites();
-
-            // Если мы сейчас в режиме избранного, обновляем список
             if (isShowingFavorites) {
                 filteredList.clear();
                 filteredList.addAll(favoriteList);
@@ -480,7 +481,7 @@ public class MainActivity extends Activity {
             handler.post(updateSeekBar);
 
             mediaPlayer.setOnCompletionListener(mp -> {
-                Log.d("MusicLite", "⏩ Автопереход на следующий трек...");
+                Log.d("MusicLite", "⏩ Автопереход на следующий трек (как по радио)...");
                 int nextIndex = (currentSongIndex + 1) % songList.size();
                 playSong(nextIndex);
             });
@@ -507,4 +508,4 @@ public class MainActivity extends Activity {
             this.path = path;
         }
     }
-            }
+}
