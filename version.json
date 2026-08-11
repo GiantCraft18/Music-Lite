@@ -1,5 +1,5 @@
 {
-  "version": "1.2",
-  "apk_url": "https://github.com/GiantCraft/Music-Lite/releases/download/v1.2/app-debug.apk",
-  "notes": "Добавлен режим настроек и проверка обновлений!"
+  "version": "1.2-fix",
+  "apk_url": "https://github.com/GiantCraft/Music-Lite/releases/download/v1.2-fix/app-debug.apk",
+  "notes": "Исправлен клик по трекам и автопереход. Теперь треки переключаются без проблем!"
 }
