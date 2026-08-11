@@ -4,22 +4,31 @@
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:label="Music Lite"
         android:theme="@android:style/Theme.Black.NoTitleBar">
 
-        <activity android:name=".MainActivity"
+        <activity
+            android:name=".MainActivity"
             android:exported="true">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
 
         <activity android:name=".NowPlayingActivity" />
-        <activity android:name=".SettingsActivity" /> <!-- ДОБАВЛЕННАЯ СТРОЧКА -->
+        <activity android:name=".SettingsActivity" />
+
+        <service android:name=".MusicService" />
 
     </application>
 
