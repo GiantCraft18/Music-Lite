@@ -6,15 +6,38 @@
     android:padding="16dp"
     android:background="#121212">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <!-- ГАМБУРГЕР И ЗАГОЛОВОК -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="🎵 Music Lite"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="#FFFFFF"
-        android:layout_marginBottom="12dp" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="12dp">
 
+        <TextView
+            android:id="@+id/btnHamburger"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="☰"
+            android:textSize="24sp"
+            android:textColor="#FFFFFF"
+            android:padding="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🎵 Music Lite"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+
+    <!-- ПОИСК И СЕРДЕЧКО -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -48,6 +71,7 @@
             android:background="?android:attr/selectableItemBackground" />
     </LinearLayout>
 
+    <!-- СПИСОК ПЕСЕН -->
     <ListView
         android:id="@+id/lvSongs"
         android:layout_width="match_parent"
@@ -57,6 +81,7 @@
         android:dividerHeight="8dp"
         android:padding="4dp" />
 
+    <!-- ПАНЕЛЬ ПЛЕЕРА -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
