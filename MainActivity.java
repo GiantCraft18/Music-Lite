@@ -146,7 +146,6 @@ public class MainActivity extends Activity {
             }
         }
 
-        // ГАМБУРГЕР -> ПЕРЕХОД В НАСТРОЙКИ
         btnHamburger.setOnClickListener(v -> {
             startActivity(new Intent(MainActivity.this, SettingsActivity.class));
         });
@@ -316,6 +315,14 @@ public class MainActivity extends Activity {
         if (mediaPlayer != null) {
             intent.putExtra("position", mediaPlayer.getCurrentPosition());
             intent.putExtra("duration", mediaPlayer.getDuration());
+        } else {
+            // Если плеер по какой-то причине пропал, создаём его заново прямо перед переходом
+            Toast.makeText(this, "⚠️ Плеер был потерян, восстанавливаем...", Toast.LENGTH_SHORT).show();
+            playSong(index);
+            if (mediaPlayer != null) {
+                intent.putExtra("position", mediaPlayer.getCurrentPosition());
+                intent.putExtra("duration", mediaPlayer.getDuration());
+            }
         }
         startActivity(intent);
     }
