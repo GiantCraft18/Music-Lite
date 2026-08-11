@@ -22,9 +22,9 @@ public class SettingsActivity extends Activity {
 
         btnBack.setOnClickListener(v -> finish());
 
-        // Открытие ссылки на GitHub
+        // ТВОЯ НОВАЯ ССЫЛКА
         tvGitHubLink.setOnClickListener(v -> {
-            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/GiantCraft/Music-Lite"));
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/GiantCraft18"));
             startActivity(browserIntent);
         });
     }
