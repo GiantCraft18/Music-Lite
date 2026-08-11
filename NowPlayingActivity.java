@@ -1,8 +1,10 @@
 package com.example.musiclite;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -10,9 +12,12 @@ import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.Random;
 
 public class NowPlayingActivity extends Activity {
 
@@ -20,11 +25,15 @@ public class NowPlayingActivity extends Activity {
     private SeekBar seekBarNow;
     private Button btnPlayNow, btnStopNow, btnRewindNow, btnForwardNow, btnBack;
     private ImageView ivBigAlbumArt;
+    private LinearLayout equalizerContainer;
 
     private MediaPlayer mediaPlayer;
     private Handler handler = new Handler();
     private Runnable updateSeekBar;
     private boolean isPlaying = false;
+
+    private View[] bars = new View[8];
+    private Random random = new Random();
 
     private View $(String id) {
         return findViewById(getResources().getIdentifier(id, "id", getPackageName()));
@@ -44,6 +53,7 @@ public class NowPlayingActivity extends Activity {
         btnForwardNow = (Button) $("btnForwardNow");
         btnBack = (Button) $("btnBack");
         ivBigAlbumArt = (ImageView) $("ivBigAlbumArt");
+        equalizerContainer = (LinearLayout) $("equalizerContainer");
 
         String title = getIntent().getStringExtra("title");
         String artist = getIntent().getStringExtra("artist");
@@ -63,12 +73,18 @@ public class NowPlayingActivity extends Activity {
             ivBigAlbumArt.setImageResource(android.R.drawable.ic_media_play);
         }
 
+        setupEqualizerBars();
+
         mediaPlayer = MainActivity.getMediaPlayer();
 
         if (mediaPlayer != null) {
             isPlaying = mediaPlayer.isPlaying();
             btnPlayNow.setText(isPlaying ? "⏸" : "▶");
             startUpdatingSeekBar();
+            if (isPlaying) {
+                startEqualizerAnimation();
+                startForegroundService(title, artist, path);
+            }
         } else {
             Toast.makeText(this, "❌ Плеер не найден. Вернитесь в главное меню.", Toast.LENGTH_SHORT).show();
             finish();
@@ -93,11 +109,15 @@ public class NowPlayingActivity extends Activity {
                 btnPlayNow.setText("▶");
                 isPlaying = false;
                 handler.removeCallbacks(updateSeekBar);
+                stopEqualizerAnimation();
+                stopForegroundService();
             } else if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
                 mediaPlayer.start();
                 btnPlayNow.setText("⏸");
                 isPlaying = true;
                 handler.post(updateSeekBar);
+                startEqualizerAnimation();
+                startForegroundService(title, artist, path);
             }
         });
 
@@ -112,6 +132,8 @@ public class NowPlayingActivity extends Activity {
                 seekBarNow.setProgress(0);
                 tvNowTitle.setText("Нет трека");
                 tvNowArtist.setText("");
+                stopEqualizerAnimation();
+                stopForegroundService();
                 Toast.makeText(this, "⏹ Остановлено", Toast.LENGTH_SHORT).show();
             }
         });
@@ -133,6 +155,81 @@ public class NowPlayingActivity extends Activity {
         btnBack.setOnClickListener(v -> finish());
     }
 
+    private void startForegroundService(String title, String artist, String path) {
+        Intent intent = new Intent(this, MusicService.class);
+        intent.setAction("PLAY");
+        intent.putExtra("title", title);
+        intent.putExtra("artist", artist);
+        intent.putExtra("path", path);
+        startService(intent);
+    }
+
+    private void stopForegroundService() {
+        Intent intent = new Intent(this, MusicService.class);
+        intent.setAction("STOP");
+        startService(intent);
+    }
+
+    private void setupEqualizerBars() {
+        for (int i = 0; i < 8; i++) {
+            View bar = new View(this);
+            int size = 40 + random.nextInt(60);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(20, size);
+            params.setMargins(4, 0, 4, 0);
+            bar.setLayoutParams(params);
+            bar.setBackgroundColor(Color.parseColor("#00BCD4"));
+            equalizerContainer.addView(bar);
+            bars[i] = bar;
+        }
+    }
+
+    private Runnable equalizerRunnable;
+    private void startEqualizerAnimation() {
+        if (equalizerRunnable != null) return;
+        equalizerRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (isPlaying) {
+                    for (int i = 0; i < bars.length; i++) {
+                        int newHeight = 20 + random.nextInt(150);
+                        View bar = bars[i];
+                        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) bar.getLayoutParams();
+                        params.height = newHeight;
+                        bar.setLayoutParams(params);
+                    }
+                    handler.postDelayed(this, 150);
+                }
+            }
+        };
+        handler.post(equalizerRunnable);
+    }
+
+    private void stopEqualizerAnimation() {
+        if (equalizerRunnable != null) {
+            handler.removeCallbacks(equalizerRunnable);
+            equalizerRunnable = null;
+        }
+        for (View bar : bars) {
+            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) bar.getLayoutParams();
+            params.height = 10;
+            bar.setLayoutParams(params);
+        }
+    }
+
+    private Bitmap getAlbumArt(String path) {
+        try {
+            MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+            retriever.setDataSource(path);
+            byte[] artBytes = retriever.getEmbeddedPicture();
+            if (artBytes != null) {
+                return BitmapFactory.decodeByteArray(artBytes, 0, artBytes.length);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     private void startUpdatingSeekBar() {
         updateSeekBar = new Runnable() {
             @Override
@@ -150,19 +247,5 @@ public class NowPlayingActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         handler.removeCallbacks(updateSeekBar);
-    }
-
-    private Bitmap getAlbumArt(String path) {
-        try {
-            MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-            retriever.setDataSource(path);
-            byte[] artBytes = retriever.getEmbeddedPicture();
-            if (artBytes != null) {
-                return BitmapFactory.decodeByteArray(artBytes, 0, artBytes.length);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 }
