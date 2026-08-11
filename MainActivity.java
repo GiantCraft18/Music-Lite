@@ -186,14 +186,12 @@ public class MainActivity extends Activity {
             public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
-        // КОРОТКОЕ НАЖАТИЕ -> Запуск трека (это было сломано)
         lvSongs.setOnItemClickListener((parent, view, position, id) -> {
             int originalIndex = songList.indexOf(filteredList.get(position));
             Toast.makeText(MainActivity.this, "▶️ Воспроизведение: " + songList.get(originalIndex).title, Toast.LENGTH_SHORT).show();
             playSong(originalIndex);
         });
 
-        // ДОЛГОЕ НАЖАТИЕ -> Избранное
         lvSongs.setOnItemLongClickListener((parent, view, position, id) -> {
             Song song = filteredList.get(position);
             if (favoriteList.contains(song)) {
@@ -427,8 +425,16 @@ public class MainActivity extends Activity {
     }
 
     private void loadMusicFiles() {
+        // Универсальный поиск: ищем ВСЕ mp3-файлы на устройстве, не только в Music
         String[] projection = { MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST, MediaStore.Audio.Media.DATA };
-        Cursor cursor = getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, projection, MediaStore.Audio.Media.IS_MUSIC + " != 0", null, null);
+        String selection = MediaStore.Audio.Media.IS_MUSIC + " != 0";
+        Cursor cursor = getContentResolver().query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                selection,
+                null,
+                null
+        );
         if (cursor != null) {
             while (cursor.moveToNext()) {
                 String title = cursor.getString(0);
