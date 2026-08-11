@@ -1,7 +1,10 @@
 package com.example.musiclite;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ContentResolver;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -30,6 +33,7 @@ public class MainActivity extends Activity {
 
     private ListView lvSongs;
     private EditText etSearch;
+    private TextView btnShowFavorites;
     private Button btnPlay, btnStop, btnRewind, btnForward, btnMute;
     private TextView tvNowPlaying, tvArtistPlaying;
     private SeekBar seekBar;
@@ -38,8 +42,10 @@ public class MainActivity extends Activity {
     private MediaPlayer mediaPlayer;
     private List<Song> songList = new ArrayList<>();
     private List<Song> filteredList = new ArrayList<>();
+    private List<Song> favoriteList = new ArrayList<>();
     private int currentSongIndex = -1;
     private boolean isPlaying = false;
+    private boolean isShowingFavorites = false;
 
     private Handler handler = new Handler();
     private Runnable updateSeekBar;
@@ -55,17 +61,37 @@ public class MainActivity extends Activity {
 
     private SongAdapter adapter;
 
-    // СТАТИЧЕСКИЙ ДОСТУП ДЛЯ NOW PLAYING
     private static MediaPlayer sharedMediaPlayer = null;
 
     public static MediaPlayer getMediaPlayer() {
         return sharedMediaPlayer;
     }
 
-    // Безопасный поиск ID (без R.java)
     private View $(String id) {
         return findViewById(getResources().getIdentifier(id, "id", getPackageName()));
     }
+
+    private BroadcastReceiver headsetReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(Intent.ACTION_HEADSET_PLUG)) {
+                int state = intent.getIntExtra("state", -1);
+                if (state == 0 && mediaPlayer != null && isPlaying) {
+                    mediaPlayer.pause();
+                    btnPlay.setText("▶");
+                    isPlaying = false;
+                    Toast.makeText(MainActivity.this, "🎧 Наушники отключены. Пауза.", Toast.LENGTH_SHORT).show();
+                } else if (state == 1 && mediaPlayer != null && !isPlaying) {
+                    if (wasPlayingBeforePause) {
+                        mediaPlayer.start();
+                        btnPlay.setText("⏸");
+                        isPlaying = true;
+                        Toast.makeText(MainActivity.this, "🎧 Наушники подключены.", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +103,7 @@ public class MainActivity extends Activity {
 
         lvSongs = (ListView) $("lvSongs");
         etSearch = (EditText) $("etSearch");
+        btnShowFavorites = (TextView) $("btnShowFavorites");
         btnPlay = (Button) $("btnPlay");
         btnStop = (Button) $("btnStop");
         btnRewind = (Button) $("btnRewind");
@@ -88,10 +115,21 @@ public class MainActivity extends Activity {
         tvCurrentTime = (TextView) $("tvCurrentTime");
         tvTotalTime = (TextView) $("tvTotalTime");
 
+        IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
+        registerReceiver(headsetReceiver, filter);
+
+        // Загружаем избранное из памяти
+        String favs = prefs.getString("favorites", "");
+        if (!favs.isEmpty()) {
+            for (String path : favs.split(";")) {
+                for (Song s : songList) {
+                    if (s.path.equals(path)) favoriteList.add(s);
+                }
+            }
+        }
+
         loadMusicFiles();
-        filteredList.addAll(songList);
-        adapter = new SongAdapter(this, filteredList);
-        lvSongs.setAdapter(adapter);
+        updateAdapter();
 
         cachedPosition = prefs.getInt("cached_pos", 0);
         currentSongIndex = prefs.getInt("last_index", -1);
@@ -107,6 +145,21 @@ public class MainActivity extends Activity {
                 mediaPlayer.seekTo(cachedPosition);
             }
         }
+
+        // Переключение на избранное/все песни
+        btnShowFavorites.setOnClickListener(v -> {
+            isShowingFavorites = !isShowingFavorites;
+            if (isShowingFavorites) {
+                btnShowFavorites.setText("📋 Все");
+                filteredList.clear();
+                filteredList.addAll(favoriteList);
+            } else {
+                btnShowFavorites.setText("♥️");
+                filteredList.clear();
+                filteredList.addAll(songList);
+            }
+            adapter.notifyDataSetChanged();
+        });
 
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override
@@ -133,6 +186,27 @@ public class MainActivity extends Activity {
         lvSongs.setOnItemClickListener((parent, view, position, id) -> {
             int originalIndex = songList.indexOf(filteredList.get(position));
             openNowPlaying(originalIndex);
+        });
+
+        // ДОЛГОЕ НАЖАТИЕ: ДОБАВИТЬ/УБРАТЬ ИЗ ИЗБРАННОГО
+        lvSongs.setOnItemLongClickListener((parent, view, position, id) -> {
+            Song song = filteredList.get(position);
+            if (favoriteList.contains(song)) {
+                favoriteList.remove(song);
+                Toast.makeText(MainActivity.this, "♡ Убрано из избранного", Toast.LENGTH_SHORT).show();
+            } else {
+                favoriteList.add(song);
+                Toast.makeText(MainActivity.this, "♥️ Добавлено в избранное", Toast.LENGTH_SHORT).show();
+            }
+            saveFavorites();
+
+            // Если мы сейчас в режиме избранного, обновляем список
+            if (isShowingFavorites) {
+                filteredList.clear();
+                filteredList.addAll(favoriteList);
+            }
+            adapter.notifyDataSetChanged();
+            return true;
         });
 
         btnPlay.setOnClickListener(v -> {
@@ -198,11 +272,31 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void filterSongs(String query) {
+    private void saveFavorites() {
+        StringBuilder sb = new StringBuilder();
+        for (Song s : favoriteList) {
+            sb.append(s.path).append(";");
+        }
+        prefs.edit().putString("favorites", sb.toString()).apply();
+    }
+
+    private void updateAdapter() {
         filteredList.clear();
-        if (query.isEmpty()) {
-            filteredList.addAll(songList);
+        filteredList.addAll(isShowingFavorites ? favoriteList : songList);
+        adapter = new SongAdapter(this, filteredList);
+        lvSongs.setAdapter(adapter);
+    }
+
+    private void filterSongs(String query) {
+        if (isShowingFavorites) {
+            filteredList.clear();
+            for (Song s : favoriteList) {
+                if (s.title.toLowerCase().contains(query.toLowerCase())) {
+                    filteredList.add(s);
+                }
+            }
         } else {
+            filteredList.clear();
             for (Song s : songList) {
                 if (s.title.toLowerCase().contains(query.toLowerCase())) {
                     filteredList.add(s);
@@ -413,4 +507,4 @@ public class MainActivity extends Activity {
             this.path = path;
         }
     }
-}
+            }
